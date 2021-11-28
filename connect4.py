@@ -1,33 +1,79 @@
 import pygame
+import time
 
 def drawBoard(screen, board):
+    red = pygame.image.load('img/red.png')
+    red = pygame.transform.scale(red, (90, 90))
+    yellow = pygame.image.load('img/yellow.png')
+    yellow = pygame.transform.scale(yellow, (90, 90))
+    screen.fill((11, 0, 158))
     for i in range(6):
         for j in range(7):
             if board[i][j] == 'r':
-                pygame.draw.circle(screen, (153, 0, 0),
-                                   (70 + j * 105, 70 + i * 105), 45)
+                screen.blit(red, (25 + j * 105, 25 + i * 105))
+
             elif board[i][j] == 'y':
-                pygame.draw.circle(screen, (255, 213, 0),
-                                   (70 + j * 105, 70 + i * 105), 45)
+                screen.blit(yellow, (25 + j * 105, 25 + i * 105))
             else:
                 pygame.draw.circle(screen, (255, 255, 255),
                                    (70 + j * 105, 70 + i * 105), 45)
+
+def findWaitTime(coords):
+    return ((70 + coords[1] * 105) / 5) * 0.0004
 
 # Makes the move and checks to see if move is valid
 def move(board, color, move):
     row = move[1]
     col = move[0]
+    newRow = row
     valid = True
-    if row < 5:
-        for i in range(row + 1, 6):
+    if board[row][col] == '-':
+        for i in range(row, 6):
             if board[i][col] == '-':
-                valid = False
+                newRow += 1
+            else:
                 break
-    if board[row][col] == '-' and valid:
-        board[row][col] = color
-    if not valid:
+    else:
         return False
-    return board
+
+    return (newRow - 1, col)
+
+def findCoords(board, move):
+    row = move[1]
+    col = move[0]
+    newRow = row
+    if board[row][col] == '-':
+        for i in range(row, 6):
+            if board[i][col] == '-':
+                newRow += 1
+            else:
+                break
+    return (col, newRow - 1)
+
+def dropAnimation(screen, move, color, board):
+    row = move[1]
+    col = move[0]
+    speed = 5
+    boardImg = pygame.image.load('img/board.png')
+    red = pygame.image.load('img/red.png')
+    yellow = pygame.image.load('img/yellow.png')
+    x = 25 + col * 105
+    final_y = 30 + row * 105
+    y = 0
+    img = red if color == 'r' else yellow
+    color = (153, 0, 0) if color == 'r' else (255, 213, 0)
+    
+    img = pygame.transform.scale(img, (90, 90))
+
+    while y < final_y:
+        screen.blit(img, (x, y))
+        screen.blit(boardImg, (0, 0))
+        y += speed
+        
+        pygame.display.update()
+        drawBoard(screen, board)
+        pygame.time.delay(4)
+    
 
 # Checks for winner
 def didWin(board):
@@ -89,6 +135,9 @@ pygame.init()
 
 # Set up window
 screen = pygame.display.set_mode((780, 665))
+pygame.display.set_caption('Connect 4')
+icon = pygame.image.load('img/icon.png')
+pygame.display.set_icon(icon)
 
 # Create game board
 gameBoard = [['-', '-', '-', '-', '-', '-', '-'],
@@ -115,26 +164,25 @@ while running:
                 if coords[0] < 7 and coords[1] < 6:
                     if gameBoard[coords[1]][coords[0]] == '-':
                         if yellowTurn:
-                            tBoard = move(gameBoard, 'y', coords)
-                            if type(tBoard) == bool:
-                                print('Invalid move')
-                            else:
-                                gameBoard = tBoard
-                                yellowTurn = False
+                            moveCoords = move(gameBoard, 'y', coords)
+                            coords = findCoords(gameBoard, coords)
+                            dropAnimation(screen, coords, 'y', gameBoard)
+                            time.sleep(findWaitTime(coords))
+                            gameBoard[moveCoords[0]][moveCoords[1]] = 'y'
+                            yellowTurn = False
                         else:
-                            tBoard = move(gameBoard, 'r', coords)
-                            if type(tBoard) == bool:
-                                print('Invalid move')
-                            else:
-                                gameBoard = tBoard
-                                yellowTurn = True
+                            moveCoords = move(gameBoard, 'r', coords)
+                            coords = findCoords(gameBoard, coords)
+                            dropAnimation(screen, coords, 'r', gameBoard)
+                            time.sleep(findWaitTime(coords))
+                            gameBoard[moveCoords[0]][moveCoords[1]] = 'r'
+                            yellowTurn = True
         if didWin(gameBoard) != False:
-            print(didWin(gameBoard))
             gameWon = True
 
         if didTie(gameBoard):
-            print('Tie')
             gameWon = True
+
 
         screen.fill((11, 0, 158))
         drawBoard(screen, gameBoard)
